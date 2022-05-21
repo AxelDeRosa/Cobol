@@ -1,0 +1,528 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID CORTAUTO.
+      **********************************************************
+      *  PROGRAMA CORTE DE CONTROL SIMPLE                      *
+      *  JCL: JCLCORT8                                         *
+      *  JCL ACTUALIZADO: JCLAUTO                              *
+      *  ACTUALIZACION: CORTAUTO . REPASO CON LEO.             *
+      *  ACHIVO: ALU0010.CURSOS.AUTOSVEN.MOVIMIEN              *
+      *  TAMANO: 118                                           *
+      *  COPYLIB: AUTOMOTO                                     *
+      *  ACTUALIZACION AGREGAR LISTADO                         *
+      *                                                        *
+      **********************************************************
+      *      MANTENIMIENTO DE PROGRAMA                         *
+      **********************************************************
+      *  FECHA   *    DETALLE        * COD *
+      **************************************
+      *          *                   *     *
+      *          *                   *     *
+      **************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES. DECIMAL-POINT IS COMMA.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+             SELECT ENTRADA ASSIGN DDENTRA
+                    FILE STATUS IS WS-FS-ENT.
+
+             SELECT SALIDAG  ASSIGN DDSALG
+                    FILE STATUS IS WS-SAL-CODE.
+       DATA DIVISION.
+       FILE SECTION.
+       FD ENTRADA
+            BLOCK CONTAINS 0 RECORDS
+            RECORDING MODE IS F.
+
+       01 REG-ENTRADA           PIC X(118).
+
+       FD SALIDAG
+            BLOCK CONTAINS 0 RECORDS
+            RECORDING MODE IS F.
+
+       01 REG-SALIDAG           PIC X(132).
+
+      **************************************
+       WORKING-STORAGE SECTION.
+      **************************************
+
+       77 WS-FS-ENT             PIC XX         VALUE SPACES.
+
+       01 WS-STATUS-FIN         PIC X.
+          88 WS-FIN-LECTURA                    VALUE 'Y'.
+          88 WS-NO-FIN-LECTURA                 VALUE 'N'.
+
+       77 WS-ESPACIOS           PIC X(99)      VALUE SPACES.
+
+       77 WS-AUT-MOD-ANT        PIC X(48)      VALUE SPACES.
+       77 WS-AUT-MAR-ANT        PIC X(30))     VALUE SPACES.
+                                         )
+       77 WS-IMP-MODELO         PIC 9(13)      VALUE ZEROS.
+       77 WS-IMP-MARCA          PIC 9(13)      VALUE ZEROS.
+       77 MASCARA               PIC $$.$$$.$$$.$$9.
+
+          COPY CENPROV.
+
+       77 WS-SAL-CODE           PIC XX         VALUE SPACES.
+       01 WS-ESPACIO-BLANCO.
+          03 FILLER             PIC X          VALUE SPACES.
+
+       01 WS-TITULO-FECHA.
+          03 FILLER             PIC X(12)      VALUE 'IT PATAGONIA'.
+          03 FILLER             PIC X(77)      VALUE SPACES.
+          03 LIS-FECHA-PAG.
+
+             05 STRING-FECHA    PIC X(07)      VALUE 'FECHA: '.
+             05 WS-FECHA-LIS.
+                08 LIS-ANIO     PIC 9(04)      VALUE ZEROS.
+                08 FILLER       PIC X          VALUE '/'.
+                08 LIS-MES      PIC 9(02)      VALUE ZEROS.
+                08 FILLER       PIC X          VALUE '/'.
+                08 LIS-DIA      PIC 9(02)      VALUE ZEROS.
+
+       01 WS-TITULO-HORA.
+          03 FILLER             PIC X(90)      VALUE SPACES.
+          03 STRING-HORA        PIC X(06)      VALUE 'HORA: '.
+          03 LISTADO-HORA.
+              05 LIS-HORA       PIC 99         VALUE ZEROS.
+              05 FILLER         PIC X          VALUE ':'.
+              05 LIS-MIN        PIC 99         VALUE ZEROS.
+              05 FILLER         PIC X          VALUE ':'.
+              05 LIS-SEG        PIC 99         VALUE ZEROS.
+
+       01 WS-TITULO-TOTAL-MODEL.
+          03 FILLER             PIC X(43)      VALUE SPACES.
+          03 FILLER             PIC X(18)
+                     VALUE 'TOTALES POR MODELO'.
+       01 WS-TITULO-SEPARADOR.
+          03 FILLER             PIC X(41)      VALUE SPACES.
+          03 FILLER             PIC X(22)
+                     VALUE '======================'.
+
+       01 WS-SUBTITULO-MODELO.
+          03 FILLER             PIC X(30)      VALUE 'MARCA  '.
+          03 FILLER             PIC X(02)      VALUE SPACES.
+          03 FILLER             PIC X(52)      VALUE 'MODELO'.
+          03 FILLER             PIC X(02)      VALUE SPACES.
+          03 FILLER             PIC X(08)      VALUE 'IMPORTE'.
+
+       01 WS-SUBTITULO-MODELO-SEP.
+
+          03 FILLER             PIC X(30)
+                     VALUE ALL '-'.
+          03 FILLER             PIC X(02)      VALUE SPACES.
+          03 FILLER             PIC X(52)
+                     VALUE ALL '-'.
+          03 FILLER             PIC X(02)      VALUE SPACES.
+          03 FILLER             PIC X(11)
+                     VALUE ALL '-'.
+
+       01 WS-SUBTITULO-MARCA-SEP.
+
+          03 FILLER             PIC X(30)
+                     VALUE ALL '-'.
+          03 FILLER             PIC X(04)      VALUE SPACES.
+          03 FILLER             PIC X(12)
+                     VALUE ALL '-'.
+
+       01 WS-TITULO-MARCA.
+          03 FILLER             PIC X(45)      VALUE SPACES.
+          03 FILLER             PIC X(15)      VALUE 'TOTAL POR MARCA'.
+
+       01 WS-SUB-TITULO-MARCA.
+          03 FILLER             PIC X(30)      VALUE 'MARCA  '.
+          03 FILLER             PIC X(04)      VALUE SPACES.
+          03 FILLER             PIC X(08)      VALUE 'IMPORTE'.
+
+       01 WS-LIS-IMPRESION-MARCA.
+          03 WS-MAR-LIS2        PIC X(30)      VALUE SPACES.
+          03 FILLER             PIC X(02)      VALUE SPACES.
+          03 WS-IMP-LIS2        PIC $$.$$$.$$$.$$9.
+
+
+       01 WS-LIS-IMPRESION-MODELO.
+          03 WS-LIS-MAR         PIC X(30)        VALUE SPACES.
+          03 FILLER             PIC X(02)      VALUE SPACES.
+          03 WS-LIS-MOD         PIC X(48)      VALUE SPACES.
+          03 FILLER             PIC X(03)      VALUE SPACES.
+          03 WS-LIS-IMP         PIC $$.$$$.$$$.$$9.
+
+
+       77 WS-CUENTA-LINEA       PIC 9(02)      VALUE ZEROS.
+
+       77 WS-IMPRESION          PIC X(132)     VALUE SPACES.
+       01 WS-SEPARADOR          PIC X(71)      VALUE
+           '+---------+----------------+----------+---------------------
+      -    '-----------'.
+
+       01 WS-FECHA.
+          03 WS-ANIO            PIC 9(04)      VALUE ZEROS.
+          03 WS-MES             PIC 9(02)      VALUE ZEROS.
+          03 WS-DIA             PIC 9(02)      VALUE ZEROS.
+          03 WS-HORA            PIC 99         VALUE ZEROS.
+          03 WS-MIN             PIC 99         VALUE ZEROS.
+          03 WS-SEG             PIC 99         VALUE ZEROS.
+
+       77 WS-C-P                PIC 9(02)      VALUE ZEROS.
+
+      ***********************************************
+
+       PROCEDURE DIVISION.
+
+       MAIN-PROGRAM.
+
+           PERFORM 1000-I-INICIO
+              THRU 1000-F-INICIO.
+
+           PERFORM 2000-I-PROCESO
+              THRU 2000-F-PROCESO       UNTIL WS-FIN-LECTURA.
+
+           PERFORM 8000-I-ULTIMO-REGISTRO
+              THRU 8000-F-ULTIMO-REGISTRO.
+
+           PERFORM 9999-I-FINAL
+              THRU 9999-F-FINAL.
+
+       MAIN-PROGRAM-F. EXIT.
+
+       1000-I-INICIO.
+
+           SET WS-NO-FIN-LECTURA        TO TRUE.
+
+           MOVE FUNCTION CURRENT-DATE TO WS-FECHA.
+
+           OPEN INPUT ENTRADA.
+
+           IF WS-FS-ENT IS NOT EQUAL '00'
+              DISPLAY 'ERROR EN OPEN ENTRADA = ' WS-FS-ENT
+              MOVE 9999                 TO RETURN-CODE
+              SET WS-FIN-LECTURA        TO TRUE
+           END-IF
+
+           OPEN OUTPUT SALIDAG.
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY '* ERROR EN OPEN SALIDAG = ' WS-SAL-CODE
+              MOVE 9999                 TO RETURN-CODE
+              SET  WS-FIN-LECTURA       TO TRUE
+           END-IF.
+
+           PERFORM 1100-I-LEER-ENTRADA
+              THRU 1100-F-LEER-ENTRADA
+
+              MOVE WS-AUT-MOD           TO WS-AUT-MOD-ANT
+              MOVE WS-AUT-MAR           TO WS-AUT-MAR-ANT
+
+           PERFORM 1050-I-IMPRIMIR-TITULO  THRU 1050-F-IMPRIMIR-TITULO.
+
+       1000-F-INICIO. EXIT.
+
+       1050-I-IMPRIMIR-TITULO.
+
+           MOVE 6 TO WS-CUENTA-LINEA
+
+               ADD  1                   TO   WS-C-P
+               MOVE WS-DIA              TO   LIS-DIA
+               MOVE WS-MES              TO   LIS-MES
+               MOVE WS-ANIO             TO   LIS-ANIO
+               MOVE WS-HORA             TO   LIS-HORA
+               MOVE WS-MIN              TO   LIS-MIN
+               MOVE WS-SEG              TO   LIS-SEG
+
+
+           WRITE REG-SALIDAG FROM WS-TITULO-FECHA AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO FECHA. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF.
+
+           WRITE REG-SALIDAG FROM WS-TITULO-HORA AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO HORA. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF.
+
+           WRITE REG-SALIDAG FROM WS-TITULO-TOTAL-MODEL AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF.
+
+           WRITE REG-SALIDAG FROM WS-TITULO-SEPARADOR AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF.
+
+           WRITE REG-SALIDAG FROM WS-ESPACIO-BLANCO AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF.
+
+           WRITE REG-SALIDAG FROM WS-SUBTITULO-MODELO AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE SUBTITULO. '
+              MOVE 9999                 TO RETURN-CODE
+              SET WS-FIN-LECTURA        TO TRUE
+            END-IF.
+
+           WRITE REG-SALIDAG FROM WS-SUBTITULO-MODELO-SEP AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE SUBTITULO. '
+              MOVE 9999                 TO RETURN-CODE
+              SET WS-FIN-LECTURA        TO TRUE
+            END-IF.
+
+       1050-F-IMPRIMIR-TITULO. EXIT.
+
+       1100-I-LEER-ENTRADA.
+
+           READ ENTRADA INTO WS-REG-COPY
+
+           EVALUATE WS-FS-ENT
+               WHEN '00'
+                  CONTINUE
+               WHEN '10'
+                  SET WS-FIN-LECTURA    TO TRUE
+               WHEN OTHER
+                  DISPLAY 'ERROR EN LECTURA ENTRADA =' WS-FS-ENT
+                  SET WS-FIN-LECTURA    TO TRUE
+           END-EVALUATE.
+
+       1100-F-LEER-ENTRADA. EXIT.
+
+       2000-I-PROCESO.
+
+           IF WS-NO-FIN-LECTURA
+
+            IF WS-AUT-MAR = WS-AUT-MAR-ANT
+              IF WS-AUT-MOD = WS-AUT-MOD-ANT
+                ADD WS-AUT-IMP          TO WS-IMP-MODELO
+                ADD WS-AUT-IMP          TO WS-IMP-MARCA
+              ELSE
+                ADD WS-AUT-IMP          TO WS-IMP-MARCA
+                   PERFORM 3000-I-CORTE-MODELO
+                      THRU 3000-F-CORTE-MODELO
+            ELSE
+               PERFORM 3000-I-CORTE-MODELO
+                  THRU 3000-F-CORTE-MODELO
+               PERFORM 4000-I-CORTE-MARCA
+                  THRU 4000-F-CORTE-MARCA
+                ADD WS-AUT-IMP          TO WS-IMP-MARCA
+            END-IF
+           PERFORM 1100-I-LEER-ENTRADA
+              THRU 1100-F-LEER-ENTRADA
+
+           END-IF.
+
+       2000-F-PROCESO. EXIT.
+
+       3000-I-CORTE-MODELO.
+
+           MOVE    WS-IMP-MODELO        TO MASCARA
+           PERFORM 3500-IMPRIMIR-MODELO THRU 3500-F-IMPRIMIR-MODELO
+           DISPLAY WS-AUT-MAR-ANT ' ' WS-AUT-MOD-ANT ' ' MASCARA
+
+           MOVE    WS-AUT-MOD           TO WS-AUT-MOD-ANT
+           MOVE    WS-AUT-IMP           TO WS-IMP-MODELO.
+
+       3000-F-CORTE-MODELO. EXIT.
+
+       3500-IMPRIMIR-MODELO.
+
+           MOVE WS-AUT-MAR-ANT          TO WS-LIS-MAR
+           MOVE WS-AUT-MOD-ANT          TO WS-LIS-MOD
+           MOVE WS-IMP-MODELO           TO WS-LIS-IMP
+
+           MOVE WS-LIS-IMPRESION-MODELO TO WS-IMPRESION.
+
+           WRITE REG-SALIDAG FROM WS-IMPRESION AFTER 1.
+
+           EVALUATE WS-SAL-CODE
+               WHEN '00'
+                    CONTINUE
+               WHEN OTHER
+                     DISPLAY ' ERROR WRITE LISTADO' WS-SAL-CODE
+                     MOVE 9999          TO RETURN-CODE
+                     SET WS-FIN-LECTURA TO TRUE
+           END-EVALUATE
+
+                     ADD 1              TO WS-CUENTA-LINEA.
+
+       3500-F-IMPRIMIR-MODELO. EXIT.
+
+       4000-I-CORTE-MARCA.
+
+           MOVE WS-IMP-MARCA            TO MASCARA
+
+           PERFORM 4500-IMPRIMIR-MARCA  THRU 4500-F-IMPRIMIR-MARCA
+
+           DISPLAY 'TOTAL ' WS-AUT-MAR-ANT ':'
+           WS-ESPACIOS(1:43)
+           MASCARA
+
+           MOVE WS-AUT-MAR              TO WS-AUT-MAR-ANT
+           MOVE ZEROES                  TO WS-IMP-MARCA.
+
+       4000-F-CORTE-MARCA. EXIT.
+
+       4500-IMPRIMIR-MARCA.
+
+      * IMPRIMO ESPACIO EN BLANCO
+           WRITE REG-SALIDAG FROM WS-ESPACIO-BLANCO AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF.
+
+      * TOTAL POR MARCA
+           WRITE REG-SALIDAG FROM WS-TITULO-MARCA AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF.
+
+      * ==============
+           WRITE REG-SALIDAG FROM WS-TITULO-SEPARADOR AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF.
+
+      * MARCA           IMPORTE
+           WRITE REG-SALIDAG FROM WS-SUB-TITULO-MARCA AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999 TO RETURN-CODE
+             SET WS-FIN-LECTURA TO TRUE
+           END-IF.
+
+      *------           --------
+           WRITE REG-SALIDAG FROM WS-SUBTITULO-MARCA-SEP AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF.
+
+      * MOVES PARA LA IMPRESION DEL REGISTRO
+           MOVE WS-AUT-MAR-ANT          TO WS-MAR-LIS2
+           MOVE WS-IMP-MARCA            TO WS-IMP-LIS2
+           MOVE WS-LIS-IMPRESION-MARCA  TO WS-IMPRESION
+
+           WRITE REG-SALIDAG FROM WS-IMPRESION AFTER 1
+
+           EVALUATE WS-SAL-CODE
+               WHEN '00'
+                    CONTINUE
+               WHEN OTHER
+                     DISPLAY ' ERROR WRITE LISTADO' WS-SAL-CODE
+                     MOVE 9999          TO RETURN-CODE
+                     SET WS-FIN-LECTURA TO TRUE
+           END-EVALUATE
+
+             ADD 1 TO WS-CUENTA-LINEA.
+
+      * COMIENZO CON LA IMPRESION DE TITULOS DE MODELO
+           IF  WS-NO-FIN-LECTURA
+           WRITE REG-SALIDAG FROM WS-ESPACIO-BLANCO AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE SUBTITULO. '
+              MOVE 9999                 TO RETURN-CODE
+              SET WS-FIN-LECTURA        TO TRUE
+            END-IF
+
+           WRITE REG-SALIDAG FROM WS-TITULO-TOTAL-MODEL AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF
+
+           WRITE REG-SALIDAG FROM WS-TITULO-SEPARADOR AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF
+
+           WRITE REG-SALIDAG FROM WS-ESPACIO-BLANCO AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE TITULO. '
+             MOVE 9999                  TO RETURN-CODE
+             SET WS-FIN-LECTURA         TO TRUE
+           END-IF
+
+
+           WRITE REG-SALIDAG FROM WS-SUBTITULO-MODELO AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE SUBTITULO. '
+              MOVE 9999                 TO RETURN-CODE
+              SET WS-FIN-LECTURA        TO TRUE
+            END-IF
+
+           WRITE REG-SALIDAG FROM WS-SUBTITULO-MODELO-SEP AFTER 1
+
+           IF WS-SAL-CODE IS NOT EQUAL '00'
+              DISPLAY ' ERROR WRITE SUBTITULO. '
+              MOVE 9999 TO RETURN-CODE
+              SET WS-FIN-LECTURA        TO TRUE
+            END-IF
+           END-IF.
+
+       4500-F-IMPRIMIR-MARCA. EXIT.
+
+       8000-I-ULTIMO-REGISTRO.
+
+           PERFORM 3000-I-CORTE-MODELO
+              THRU 3000-F-CORTE-MODELO.
+
+           PERFORM 4000-I-CORTE-MARCA
+              THRU 4000-F-CORTE-MARCA.
+
+       8000-F-ULTIMO-REGISTRO. EXIT.
+
+       9999-I-FINAL.
+
+           CLOSE ENTRADA
+           IF WS-FS-ENT IS NOT EQUAL '00' THEN
+              DISPLAY 'ERROR CERRANDO ARCHIVO =' WS-FS-ENT
+              MOVE 9999 TO RETURN-CODE
+              SET WS-FIN-LECTURA        TO TRUE
+           END-IF.
+
+           CLOSE SALIDAG
+              IF WS-SAL-CODE IS NOT EQUAL '00'
+                DISPLAY '* ERROR EN CLOSE SALIDAG = '
+                                            WS-SAL-CODE
+                MOVE 9999               TO RETURN-CODE
+                SET  WS-FIN-LECTURA     TO TRUE
+             END-IF.
+
+       9999-F-FINAL. GOBACK.

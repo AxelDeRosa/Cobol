@@ -1,0 +1,539 @@
+       IDENTIFICATION DIVISION.                                         00010013
+       PROGRAM-ID. PGMALT10.                                            00020013
+       DATA DIVISION.                                                   00030013
+       FILE SECTION.                                                    00040013
+       WORKING-STORAGE SECTION.                                         00050013
+                                                                        00050115
+       77 FILLER        PIC X(26) VALUE '* INICIO WORKING-STORAGE *'.   00051015
+                                                                        00052015
+       01 CT-CONSTANTES.                                                00060013
+          03 CT-MSGO.                                                   00070013
+             05 CT-MNS-INICIO         PIC X(72)        VALUE            00080013
+                  'INGRESE UNA TECLA'.                                  00090013
+             05 CT-MNS-ALTA           PIC X(72)        VALUE            00100015
+                  'ALTA'.                                               00110013
+             85 CT-MNS-INVALID        PIC X(72)        VALUE            00120054
+                  'TECLA INVALIDA'.                                     00130013
+             05 CT-MNS-01             PIC X(72)        VALUE            00151015
+                  'INGRESE LOS DATOS Y PRESIONE ENTER'.                 00152015
+             05 CT-MNS-02             PIC X(72)        VALUE            00153015
+                  'DATOS INGRESADOS INCORRECTOS - REINGRESE'.           00154015
+             05 CT-MNS-03             PIC X(72)        VALUE            00155015
+                  'ALTA INGRESADA CORRECTAMENTE'.                       00156015
+             05 CT-MNS-04             PIC X(72)        VALUE            00157015
+                  'TIPO DE DOCUMENTO INVALIDO'.                         00158015
+             05 CT-MNS-05             PIC X(72)        VALUE            00159015
+                  'NUMERO DE DOCUMENTO INVALIDO'.                       00159115
+             05 CT-MNS-06             PIC X(72)        VALUE            00159215
+                  'CLIENTE YA EXISTENTE'.                               00159315
+             05 CT-MNS-08             PIC X(72)        VALUE            00159415
+                  'PROBLEMA CON ARCHIVO PERSONA'.                       00159515
+             05 CT-MNS-09             PIC X(72)        VALUE            00159615
+                  'TECLA INVALIDA'.                                     00159715
+             05 CT-MNS-EXIT           PIC X(72)        VALUE            00159815
+                  'FIN TRANSACCION T310'.                               00159915
+             05 CT-MNS-ER-TIP-DOC     PIC X(72)        VALUE            00160040
+                  'ERROR, TIPO DE DOCUMENTO INV¡LIDO'.                  00160140
+             05 CT-MNS-ER-NRO-DOC     PIC X(72)        VALUE            00160240
+                  'ERROR, NRO DE DOCUMENTO INV¡LIDO.'.                  00160340
+             05 CT-MSN-ER-NOMAPE      PIC X(72)        VALUE            00160440
+                  'ERROR, NOMBRE INGRESADO INV·LIDO'.                   00160540
+             05 CT-MNS-ER-FECNAC      PIC X(72)        VALUE            00160640
+                  'ERROR, FECHA DE NACIMIENTO INV¡LIDA'.                00160740
+             05 CT-MNS-ER-FECDIA      PIC X(72)        VALUE            00160851
+                  'ERROR, FORMATO DE DÌA INV·LIDO'.                     00160951
+             05 CT-MNS-ER-FECMES      PIC X(72)        VALUE            00161051
+                  'ERROR, FORMATO DE MES INV·LIDO'.                     00161151
+             05 CT-MNS-ER-FECBIS      PIC X(72)        VALUE            00161251
+                  'ERROR, MES INV¡LIDO. A—O NO ES BISIESTO.'.           00161351
+             05 CT-MNS-ER-FECANIO     PIC X(72)        VALUE            00161451
+                  'ERROR, FORMATO DE ANIO INV·LIDO'.                    00161551
+             05 CT-MNS-ER-SEXO        PIC X(72)        VALUE            00161640
+                  'ERROR, SEXO INGRESADO INV¡LIDO'.                     00161740
+                                                                        00161815
+          03 CT-DATASET               PIC X(08)        VALUE 'PERSONA'. 00161915
+                                                                        00162015
+          03 CT-DATASET-L             PIC S9(04) COMP  VALUE 160.       00162119
+                                                                        00162213
+       01 WS-FECCLIEN.                                                  00162319
+          03 WS-FN-AAAA           PIC 9999.                             00163019
+          03 WS-FN-MM             PIC 99.                               00164019
+          03 WS-FN-DD             PIC 99.                               00165019
+                                                                        00166019
+       01 WS-VARIABLES.                                                 00170013
+          03 WS-MAP-00                PIC X(07)        VALUE 'MAP0310'. 00180013
+          03 WS-MAPSET-00             PIC X(07)        VALUE 'MAP0310'. 00190013
+          03 WS-LONG                  PIC S9(04) COMP.                  00200013
+          03 WS-ABSTIME               PIC S9(16) COMP  VALUE +0.        00210013
+          03 WS-FECHA                 PIC X(10)        VALUE SPACES.    00220013
+          03 WS-SEP-DATE              PIC X            VALUE '/'.       00230013
+          03 WS-HORA                  PIC X(08)        VALUE SPACES.    00240013
+          03 WS-SEP-HOUR              PIC X            VALUE ':'.       00250013
+          03 WS-RESP                  PIC S9(04) COMP.                  00260013
+          03 WS-ERR                   PIC X(15).                        00270013
+          03 SW-CONFIRMAR             PIC X            VALUE 'Y'.       00280013
+          03 WS-NORMAL                PIC X            VALUE '*'.       00290013
+          03 WS-ENTER                 PIC X            VALUE ' '.       00300013
+          03 WS-RESULTADO             PIC 9(04)        VALUE ZEROES.    00301040
+          03 WS-RESTO-4               PIC 9(04)V99     VALUE ZEROES.    00302040
+          03 WS-RESTO-100             PIC 9(02)V99     VALUE ZEROES.    00303040
+          03 WS-RESTO-400             PIC 9(02)V99     VALUE ZEROES.    00304040
+                                                                        00310013
+       01 WS-COMMAREA.                                                  00310115
+           03 WS-USER-DATA.                                             00310215
+               05 WS-USER-TIPDOC      PIC X(02) VALUE SPACES.           00310315
+               05 WS-USER-NRODOC      PIC 9(11) VALUE ZEROES.           00310415
+           03 WS-TIP-DOC               PIC X(02).                       00311015
+              88 WS-TIP-DOC-BOOLEAN                     VALUE 'DU'      00312015
+                                                              'PA'      00313015
+                                                              'PE'.     00314015
+          03 WS-SEXO                  PIC X.                            00315040
+             88 WS-SEXO-VALIDO                         VALUE 'F'        00316040
+                                                             'M'        00317040
+                                                             'O'.       00318040
+                                                                        00320013
+      * VALIDACIONES *********************************************      00330040
+       01 FLAG-VALIDAR                PIC X.                            00360040
+          88 REG-VALIDO                                VALUE 'Y'.       00370040
+          88 REG-FAIL                                  VALUE 'N'.       00380040
+      * COPYS  ***************************************************      00400013
+                                                                        00401013
+       COPY MAP0310.                                                    00410013
+       COPY DFHBMSCA.                                                   00420013
+       COPY DFHAID.                                                     00430013
+       COPY CPPERSO.                                                    00431015
+                                                                        00440013
+       PROCEDURE DIVISION.                                              00450013
+                                                                        00451013
+       MAIN-PROGRAM.                                                    00460013
+                                                                        00461013
+           PERFORM 1000-I-INICIO                                        00470013
+              THRU 1000-I-INICIO                                        00480013
+           PERFORM 2000-I-PROCESO                                       00490013
+              THRU 2000-F-PROCESO.                                      00500013
+                                                                        00510013
+       1000-I-INICIO.                                                   00520013
+                                                                        00521013
+      * CONTROL DE TECLA                                                00530013
+                                                                        00531013
+           IF EIBCALEN = 0 OR DFHAID = DFHPF3                           00540016
+               MOVE LENGTH OF MAP0310O TO WS-LONG                       00550013
+               MOVE LOW-VALUES TO MAP0310O                              00560013
+               PERFORM 7000-I-TIME                                      00570013
+                  THRU 7000-F-TIME                                      00580013
+               MOVE 'T310-MAP0310' TO T310O                             00590013
+               MOVE CT-MNS-INICIO TO MSGO                               00600013
+               EXEC CICS                                                00610013
+                     SEND MAP   (WS-MAP-00)                             00620013
+                        MAPSET  (WS-MAPSET-00)                          00630013
+                        FROM    (MAP0310O)                              00640013
+                        LENGTH  (WS-LONG)                               00650013
+                        ERASE                                           00660013
+                        FREEKB                                          00670013
+                        RESP    (WS-RESP)                               00680013
+               END-EXEC                                                 00690013
+                                                                        00691013
+                                                                        00692013
+               IF WS-RESP = DFHRESP(NORMAL)                             00700013
+                 PERFORM 9999-I-FINAL  THRU 9999-F-FINAL                00710013
+               ELSE                                                     00730013
+                 MOVE 'ERROR TECLA'    TO WS-ERR                        00740013
+                 EXEC CICS                                              00750013
+                  SEND TEXT FROM (WS-ERR)                               00751013
+                 END-EXEC                                               00752013
+      *          PERFORM 9000-I-PF12   THRU 9000-F-PF12                 00760037
+               END-IF.                                                  00770013
+                                                                        00780013
+       1000-F-INICIO. EXIT.                                             00790013
+                                                                        00800013
+       2000-I-PROCESO.                                                  00810013
+                                                                        00820013
+           PERFORM 7000-I-TIME     THRU 7000-F-TIME.                    00830013
+                                                                        00840013
+           MOVE LENGTH OF MAP0310O TO WS-LONG.                          00850013
+           EXEC CICS                                                    00860013
+                RECEIVE MAP (WS-MAP-00)                                 00870013
+                  MAPSET    (WS-MAPSET-00)                              00880013
+                  INTO      (MAP0310I)                                  00890013
+                  RESP      (WS-RESP)                                   00900013
+           END-EXEC.                                                    00910013
+                                                                        00911013
+           IF WS-RESP = DFHRESP(NORMAL)                                 00920013
+              PERFORM 2500-I-PULSAR-TECLA THRU 2500-F-PULSAR-TECLA      00930013
+           ELSE                                                         00950013
+              MOVE 'ERROR EN PROCESO '    TO WS-ERR                     00960013
+               EXEC CICS                                                00961013
+                SEND TEXT FROM(WS-ERR)                                  00962013
+               END-EXEC                                                 00963013
+                                                                        00970013
+              PERFORM 9000-I-PF12         THRU 9000-F-PF12              00980013
+                                                                        00990013
+           END-IF.                                                      01000013
+                                                                        01010013
+       2000-F-PROCESO. EXIT.                                            01020013
+                                                                        01030013
+       2500-I-PULSAR-TECLA.                                             01040013
+                                                                        01050013
+             EVALUATE EIBAID                                            01060013
+                WHEN DFHENTER                                           01070013
+                   PERFORM 3000-I-ENTER                                 01080015
+                      THRU 3000-F-ENTER                                 01090015
+                WHEN DFHPF3                                             01100013
+                   PERFORM 3300-I-PF3                                   01110013
+                      THRU 3300-F-PF3                                   01120013
+                WHEN DFHPF12                                            01130013
+                   PERFORM 9000-I-PF12                                  01140013
+                      THRU 9000-F-PF12                                  01150013
+                WHEN OTHER                                              01160013
+                   MOVE CT-MNS-INVALID TO MSGO                          01170013
+                   PERFORM 7000-I-TIME                                  01180013
+                      THRU 7000-F-TIME                                  01190013
+                   MOVE 'T310-MAP0310' TO T310O                         01200013
+                  EXEC CICS                                             01210013
+                        SEND MAP (WS-MAP-00)                            01220013
+                          MAPSET (WS-MAPSET-00)                         01230013
+                          FROM   (MAP0310O)                             01240013
+                          LENGTH (WS-LONG)                              01250013
+                          ERASE                                         01260013
+                          FREEKB                                        01270013
+                          RESP   (WS-RESP)                              01280013
+                   END-EXEC                                             01290013
+                   IF WS-RESP = DFHRESP(NORMAL)                         01300013
+                      PERFORM 9999-I-FINAL THRU 9999-F-FINAL            01310013
+                   ELSE                                                 01330013
+                      MOVE 'ERROR TECLA INGRESADA' TO WS-ERR            01340013
+                                                                        01341014
+                      EXEC CICS                                         01342014
+                       SEND TEXT FROM (WS-ERR)                          01343014
+                      END-EXEC                                          01344014
+                                                                        01345014
+      *               PERFORM 9000-I-PF12  THRU 9000-F-PF12             01360037
+                   END-IF                                               01380013
+             END-EVALUATE.                                              01390013
+                                                                        01400013
+       2500-F-PULSAR-TECLA. EXIT.                                       01410013
+                                                                        01420013
+       3000-I-ENTER.                                                    01421015
+            MOVE 'T010-MAP0310' TO T310O                                01423017
+            MOVE TIPDOCI TO WS-TIP-DOC                                  01423128
+                                                                        01423228
+            IF NOT WS-TIP-DOC-BOOLEAN                                   01424028
+               MOVE -1 TO TIPDOCL                                       01425015
+               MOVE CT-MNS-04 TO MSGO                                   01426015
+            ELSE                                                        01427015
+               IF NUMDOCI NOT NUMERIC                                   01428015
+                  MOVE -1 TO NUMDOCL                                    01429215
+                  MOVE CT-MNS-05 TO MSGO                                01429315
+               ELSE                                                     01429415
+                  MOVE TIPDOCI TO WS-USER-TIPDOC                        01429515
+                  MOVE NUMDOCI TO WS-USER-NRODOC                        01429615
+                  PERFORM 3150-I-LECTURA                                01429715
+                     THRU 3150-F-LECTURA                                01429815
+               END-IF                                                   01429915
+            END-IF                                                      01430015
+                                                                        01430115
+            PERFORM 7000-I-TIME                                         01430215
+               THRU 7000-F-TIME                                         01430315
+                                                                        01430415
+            EXEC CICS                                                   01430515
+               SEND MAP    (WS-MAP-00)                                  01430615
+               MAPSET      (WS-MAPSET-00)                               01430730
+               FROM        (MAP0310O)                                   01430830
+               LENGTH      (WS-LONG)                                    01430930
+               ERASE                                                    01431015
+               FREEKB                                                   01431115
+               RESP        (WS-RESP)                                    01431230
+               CURSOR                                                   01431353
+            END-EXEC.                                                   01431415
+                                                                        01431515
+            IF WS-RESP = DFHRESP(NORMAL)                                01431615
+               PERFORM 9999-I-FINAL                                     01431715
+                  THRU 9999-F-FINAL                                     01431815
+            ELSE                                                        01431915
+               MOVE 'ERROR 3000-ENTER' TO WS-ERR                        01432015
+               EXEC CICS SEND TEXT FROM (WS-ERR) END-EXEC               01432115
+            END-IF.                                                     01432415
+       3000-F-ENTER. EXIT.                                              01432515
+                                                                        01432615
+       3150-I-LECTURA.                                                  01432715
+                                                                        01432854
+                EXEC CICS                                               01433015
+                     READ DATASET (CT-DATASET)                          01433115
+                     RIDFLD  (WS-USER-DATA)                             01433218
+                     INTO (REG-PERSONA)                                 01433315
+                     LENGTH (CT-DATASET-L)                              01433419
+                     EQUAL                                              01433515
+                     RESP (WS-RESP)                                     01433615
+                END-EXEC.                                               01433715
+               EVALUATE WS-RESP                                         01433815
+                  WHEN DFHRESP(NORMAL)                                  01433915
+                     MOVE WS-USER-TIPDOC     TO TIPDOCO                 01434015
+                     MOVE WS-USER-NRODOC     TO NUMDOCO                 01434115
+                     MOVE LENGTH OF MAP0310O TO WS-LONG                 01434216
+                     MOVE CT-MNS-06          TO MSGO                    01434315
+                  WHEN DFHRESP(NOTFND)                                  01434415
+                     PERFORM 6000-I-ESCRIBIR                            01434915
+                        THRU 6000-F-ESCRIBIR                            01435015
+                     MOVE LENGTH OF MAP0310O TO WS-LONG                 01435116
+                  WHEN OTHER                                            01435315
+                     MOVE WS-USER-TIPDOC     TO TIPDOCO                 01435415
+                     MOVE WS-USER-NRODOC     TO NUMDOCO                 01435515
+                     MOVE LENGTH OF MAP0310O TO WS-LONG                 01435816
+                     MOVE CT-MNS-08          TO MSGO                    01435915
+                  END-EVALUATE                                          01436015
+                                                                        01436115
+             EXEC CICS                                                  01436215
+                SEND MAP    (WS-MAP-00)                                 01436315
+                MAPSET      (WS-MAPSET-00)                              01436425
+                FROM        (MAP0310O)                                  01436525
+                LENGTH      (WS-LONG)                                   01436625
+                RESP        (WS-RESP)                                   01436725
+                ERASE                                                   01436815
+             END-EXEC.                                                  01436915
+       3150-F-LECTURA. EXIT.                                            01437015
+                                                                        01710013
+       3300-I-PF3.                                                      01720013
+                                                                        01730013
+           MOVE LOW-VALUES     TO MAP0310I.                             01740013
+           PERFORM 7000-I-TIME THRU 7000-F-TIME.                        01750013
+           MOVE 'T310-MAP0310' TO T310O.                                01770013
+           MOVE CT-MNS-INICIO  TO MSGO.                                 01780013
+                                                                        01781013
+           EXEC CICS                                                    01790013
+               SEND MAP    (WS-MAP-00)                                  01800013
+               MAPSET      (WS-MAPSET-00)                               01810013
+               FROM        (MAP0310O)                                   01820013
+               LENGTH      (WS-LONG)                                    01830013
+               ERASE                                                    01840013
+               RESP        (WS-RESP)                                    01850013
+               FREEKB                                                   01860013
+           END-EXEC.                                                    01870013
+                                                                        01871013
+           IF WS-RESP = DFHRESP(NORMAL)                                 01880013
+              PERFORM 9999-I-FINAL THRU 9999-F-FINAL                    01890013
+           ELSE                                                         01910013
+              MOVE 'ERROR 3500-PF3' TO WS-ERR                           01920038
+                                                                        01921013
+              EXEC CICS                                                 01930013
+               SEND TEXT FROM (WS-ERR)                                  01931013
+              END-EXEC                                                  01932013
+           END-IF.                                                      01933038
+                                                                        01960013
+       3300-F-PF3. EXIT.                                                01970013
+                                                                        01990013
+       5000-I-VALIDACION.                                               01990139
+                                                                        01990239
+           MOVE SEXOI TO WS-SEXO.                                       01990339
+           IF NOT WS-SEXO-VALIDO                                        01990447
+              MOVE CT-MNS-ER-SEXO TO MSGO                               01990539
+              MOVE -1      TO SEXOL                                     01990639
+              SET REG-FAIL TO TRUE                                      01990739
+           END-IF.                                                      01990839
+                                                                        01990939
+                                                                        01995239
+           IF PER-CLI-AAAAMMDD IS EQUAL ZEROES OR PER-CLI-AAAAMMDD IS   01995351
+              NOT NUMERIC                                               01995451
+              MOVE CT-MNS-ER-FECNAC TO MSGO                             01995551
+              MOVE -1      TO FECDIAL                                   01995651
+              SET REG-FAIL TO TRUE                                      01995751
+           ELSE                                                         01995851
+              IF FECANIOI < 1940 OR FECANIOI > 2003                     01995951
+                 MOVE CT-MNS-ER-FECANIO TO MSGO                         01996051
+                 MOVE -1      TO FECANIOL                               01996151
+                 SET REG-FAIL TO TRUE                                   01996251
+              END-IF                                                    01996351
+              IF FECMESI < 01 OR FECMESI > 12                           01996451
+                 MOVE CT-MNS-ER-FECMES TO MSGO                          01996551
+                 MOVE -1      TO FECMESL                                01996651
+                 SET REG-FAIL TO TRUE                                   01996751
+              END-IF                                                    01996851
+              IF FECDIAI < 01 OR FECDIAI > 31                           01996951
+                 MOVE CT-MNS-ER-FECDIA TO MSGO                          01997051
+                 MOVE -1      TO FECDIAL                                01997151
+                 SET REG-FAIL TO TRUE                                   01997251
+              END-IF                                                    01997351
+              IF FECMESI = 02 AND FECDIAI > 28                          01997451
+                 IF FECMESI > 29                                        01997551
+                    MOVE CT-MNS-ER-FECDIA TO MSGO                       01997651
+                    MOVE -1      TO FECMESL                             01997751
+                    SET REG-FAIL TO TRUE                                01997851
+                 ELSE                                                   01997951
+                    DIVIDE FECANIOI BY 004 GIVING WS-RESULTADO          01998051
+                           REMAINDER WS-RESTO-4                         01998151
+                    DIVIDE FECANIOI BY 100 GIVING WS-RESULTADO          01998251
+                           REMAINDER WS-RESTO-100                       01998351
+                    DIVIDE FECANIOI BY 400 GIVING WS-RESULTADO          01998451
+                           REMAINDER WS-RESTO-400                       01998551
+                    IF NOT ((WS-RESTO-4 = 0 AND WS-RESTO-100 NOT = 0)   01998651
+                       OR WS-RESTO-400 = 0)                             01998751
+                       MOVE CT-MNS-ER-FECBIS TO MSGO                    01998851
+                       MOVE -1      TO FECMESL                          01998951
+                       SET REG-FAIL TO TRUE                             01999051
+                    END-IF                                              01999151
+                 END-IF                                                 01999251
+              END-IF                                                    01999351
+           END-IF.                                                      01999451
+                                                                        01999551
+           IF PER-NOMAPE IS NOT ALPHABETIC                              01999646
+               OR PER-NOMAPE IS EQUAL SPACES                            01999749
+              MOVE CT-MSN-ER-NOMAPE TO MSGO                             01999839
+              MOVE -1 TO NOMAPEL                                        01999939
+              SET REG-FAIL TO TRUE                                      02000039
+           END-IF.                                                      02000139
+                                                                        02000239
+           IF PER-NRO-DOC IS NOT NUMERIC                                02000350
+              MOVE CT-MNS-ER-NRO-DOC TO MSGO                            02000439
+              MOVE -1      TO NUMDOCL                                   02000539
+              SET REG-FAIL TO TRUE                                      02000639
+           END-IF.                                                      02000739
+                                                                        02000839
+           MOVE TIPDOCI TO WS-TIP-DOC.                                  02000939
+           IF NOT WS-TIP-DOC-BOOLEAN                                    02001039
+              MOVE CT-MNS-ER-TIP-DOC TO MSGO                            02001139
+              MOVE -1        TO TIPDOCL                                 02001239
+              SET REG-FAIL TO TRUE                                      02001339
+           END-IF.                                                      02001439
+                                                                        02001539
+       5000-F-VALIDACION. EXIT.                                         02001639
+                                                                        02001739
+       6000-I-ESCRIBIR.                                                 02001844
+                                                                        02001915
+           INITIALIZE REG-PERSONA.                                      02002015
+           MOVE TIPDOCI         TO WS-USER-TIPDOC                       02002552
+           MOVE NUMDOCI         TO WS-USER-NRODOC                       02002652
+           MOVE SPACES          TO PER-DIRECCION                        02002752
+           MOVE SPACES          TO PER-LOCALIDAD                        02002852
+           MOVE SPACES          TO PER-EMAIL                            02002925
+           MOVE SPACES          TO PER-TELEFONO                         02003025
+           MOVE ZEROES          TO PER-NRO-SUCURSAL                     02003125
+           MOVE SPACES          TO PER-BAJ-AAAAMMDD                     02003225
+                                                                        02003315
+           MOVE 616             TO  PER-CLI-NRO                         02003545
+           MOVE WS-USER-TIPDOC  TO  PER-TIP-DOC                         02003619
+           MOVE WS-USER-NRODOC  TO  PER-NRO-DOC                         02003719
+           MOVE NOMAPEI         TO  PER-NOMAPE                          02003815
+           MOVE SEXOI           TO  PER-SEXO.                           02004015
+                                                                        02004115
+           STRING FECANIOI DELIMITED BY SIZE                            02004240
+                  FECMESI  DELIMITED BY SIZE                            02004340
+                  FECDIAI  DELIMITED BY SIZE                            02004440
+                  INTO PER-CLI-AAAAMMDD.                                02004540
+                                                                        02004640
+                                                                        02004740
+           SET REG-VALIDO TO TRUE                                       02004840
+                                                                        02004940
+           PERFORM 5000-I-VALIDACION                                    02005041
+              THRU 5000-F-VALIDACION.                                   02005141
+                                                                        02005240
+           IF REG-VALIDO                                                02005340
+            EXEC CICS WRITE                                             02005440
+               FILE(CT-DATASET)                                         02005540
+               FROM(REG-PERSONA)                                        02005640
+               RIDFLD(WS-USER-DATA)                                     02005740
+               LENGTH(CT-DATASET-L)                                     02005840
+               KEYLENGTH(013)                                           02005940
+               RESP(WS-RESP)                                            02006040
+            END-EXEC                                                    02006141
+                                                                        02006215
+            MOVE 'CLIENTE GUARDADO' TO MSGO                             02006341
+                                                                        02006415
+            IF WS-RESP = DFHRESP(NORMAL)                                02006540
+                                                                        02006648
+               PERFORM  7000-I-TIME THRU                                02006740
+                       7000-F-TIME                                      02006819
+                                                                        02006915
+               MOVE LENGTH OF MAP0310O TO WS-LONG                       02007040
+                                                                        02007115
+               EXEC CICS                                                02007240
+                  SEND MAP  (WS-MAP-00)                                 02007340
+                  MAPSET    (WS-MAPSET-00)                              02007440
+                  FROM      (MAP0310O)                                  02007540
+                  LENGTH    (WS-LONG)                                   02007640
+                  ERASE                                                 02007740
+                  RESP      (WS-RESP)                                   02007840
+                  FREEKB                                                02007940
+                  CURSOR                                                02008053
+               END-EXEC                                                 02008140
+                                                                        02008215
+               IF WS-RESP = DFHRESP(NORMAL)                             02008340
+                                                                        02008415
+                  PERFORM 9999-I-FINAL THRU                             02008540
+                         9999-F-FINAL                                   02008615
+                                                                        02008715
+               ELSE                                                     02008840
+                                                                        02008915
+                  MOVE 'ERROR SEND MAP'    TO WS-ERR                    02009040
+                  PERFORM 9100-I-SALIDA THRU                            02009140
+                         9100-F-SALIDA                                  02009215
+               END-IF                                                   02009340
+                                                                        02009415
+            ELSE                                                        02009540
+                                                                        02009615
+               MOVE WS-RESP TO WS-ERR                                   02009743
+               PERFORM 9100-I-SALIDA THRU                               02009840
+                       9100-F-SALIDA                                    02009940
+                                                                        02010015
+            END-IF                                                      02010140
+                                                                        02010240
+           END-IF.                                                      02010940
+       6000-F-ESCRIBIR. EXIT.                                           02011015
+                                                                        02011154
+       7000-I-TIME.                                                     02011213
+                                                                        02012013
+           EXEC CICS  ASKTIME                                           02020013
+             ABSTIME  (WS-ABSTIME)                                      02030013
+           END-EXEC.                                                    02040013
+                                                                        02041013
+           EXEC CICS  FORMATTIME                                        02050013
+             ABSTIME  (WS-ABSTIME)                                      02060013
+             DDMMYYYY (WS-FECHA)   DATESEP (WS-SEP-DATE)                02070013
+             TIME     (WS-HORA)    TIMESEP (WS-SEP-HOUR)                02080013
+           END-EXEC.                                                    02090013
+                                                                        02091013
+           MOVE WS-FECHA TO FECHAO.                                     02100013
+                                                                        02110013
+       7000-F-TIME. EXIT.                                               02120013
+                                                                        02130013
+       9000-I-PF12.                                                     02140013
+                                                                        02150013
+           EXEC CICS                                                    02160037
+                SEND CONTROL ERASE                                      02170037
+           END-EXEC.                                                    02180037
+           EXEC CICS                                                    02190037
+                XCTL PROGRAM ('PGMMEN10')                               02200037
+           END-EXEC.                                                    02210037
+           EXEC CICS                                                    02220037
+                RETURN                                                  02230037
+           END-EXEC.                                                    02240037
+                                                                        02250037
+       9000-F-PF12. EXIT.                                               02270013
+                                                                        02280013
+       9100-I-SALIDA.                                                   02281019
+                                                                        02282019
+           EXEC CICS                                                    02283019
+                SEND CONTROL                                            02284019
+                ERASE                                                   02285019
+           END-EXEC.                                                    02286019
+                                                                        02287019
+      *    MOVE 'SALIDA T145' TO WS-ERRP.                               02288019
+                                                                        02289019
+           EXEC CICS                                                    02289119
+                SEND TEXT                                               02289219
+                     FROM (WS-ERR)                                      02289319
+           END-EXEC                                                     02289419
+                                                                        02289519
+           EXEC CICS                                                    02289619
+                RETURN                                                  02289719
+                                                                        02289819
+           END-EXEC.                                                    02289919
+                                                                        02290019
+       9100-F-SALIDA. EXIT.                                             02290119
+       9999-I-FINAL.                                                    02291013
+                                                                        02300013
+           EXEC CICS                                                    02310013
+                RETURN                                                  02320013
+                TRANSID  ('T310')                                       02330013
+                COMMAREA (WS-COMMAREA)                                  02340021
+           END-EXEC.                                                    02350013
+                                                                        02360013
+       9999-F-FINAL. EXIT.                                              02370013
