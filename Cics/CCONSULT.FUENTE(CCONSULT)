@@ -1,0 +1,408 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PGMPRU10.
+       DATA DIVISION.
+       FILE SECTION.
+       WORKING-STORAGE SECTION.
+       01 CT-CONSTANTES.
+          03 CT-MSGO.
+             05 CT-MNS-01             PIC X(72)        VALUE
+                  'INGRESE LOS DATOS Y PRESIONE ENTER'.
+             05 CT-MNS-02             PIC X(72)        VALUE
+                  'DATOS INGRESADOS INCORRECTOS - REINGRESE'.
+             05 CT-MNS-03             PIC X(72)        VALUE
+                  'TIPO Y NÚMERO DOCUMENTO INEXISTENTES - REINGRESE'.
+             05 CT-MNS-04             PIC X(72)        VALUE
+                  'TIPO DE DOCUMENTO INVALIDO'.
+             05 CT-MNS-05             PIC X(72)        VALUE
+                  'NUMERO DE DOCUMENTO INVALIDO'.
+             05 CT-MNS-06             PIC X(72)        VALUE
+                  'CLIENTE ENCONTRADO'.
+             05 CT-MNS-08             PIC X(72)        VALUE
+                  'PROBLEMA CON ARCHIVO PERSONA'.
+             05 CT-MNS-09             PIC X(72)        VALUE
+                  'TECLA INVALIDA'.
+             05 CT-MNS-EXIT           PIC X(72)        VALUE
+                  'FIN DE TRANSACCION T110'.
+          03 CT-DATASET               PIC X(08)        VALUE 'PERSONA'.
+          03 CT-DATASET-LEN           PIC S9(04) COMP  VALUE 160.
+
+       01 WS-VARIABLES.
+          03 WS-MAP-00                PIC X(07)        VALUE 'MAP0110'.
+          03 WS-MAPSET-00             PIC X(07)        VALUE 'MAP0110'.
+          03 WS-LONG                  PIC S9(04) COMP.
+          03 WS-ABSTIME               PIC S9(16) COMP  VALUE +0.
+          03 WS-FECHA                 PIC X(10)        VALUE SPACES.
+          03 WS-SEP-DATE              PIC X            VALUE '/'.
+          03 WS-HORA                  PIC X(08)        VALUE SPACES.
+          03 WS-SEP-HOUR              PIC X            VALUE ':'.
+          03 WS-RESP                  PIC S9(04) COMP.
+          03 WS-ERR                   PIC X(15).
+          03 SW-CONFIRMAR             PIC X            VALUE 'Y'.
+          03 WS-NORMAL                PIC X            VALUE '*'.
+          03 WS-ENTER                 PIC X            VALUE ' '.
+
+       01 WS-COMMAREA.
+          03 WS-USER-DATA.
+             05 WS-USER-TIPDOC        PIC X(02).
+             05 WS-USER-NRODOC        PIC 9(11).
+          03 WS-TIP-DOC               PIC X(02).
+             88 WS-TIP-DOC-BOOLEAN                     VALUE 'DU'
+                                                             'PA'
+                                                             'PE'.
+          03 WS-REG-SALIDA.
+             05 WS-NUM-CLI            PIC 9(03).
+             05 WS-NOMAPE             PIC X(30).
+             05 WS-SEXO               PIC X.
+             05 WS-FECNAC             PIC X(08).
+          03 FILLER                   PIC X(05).
+
+       01  REG-PERSONA.
+           03  PER-TIP-DOC            PIC X(02).
+           03  PER-NRO-DOC            PIC 9(11).
+           03  PER-CLI-NRO            PIC 9(03).
+           03  PER-NOMAPE             PIC X(30).
+           03  PER-CLI-AAAAMMDD       PIC 9(08).
+           03  PER-DIRECCION          PIC X(30).
+           03  PER-LOCALIDAD          PIC X(15).
+           03  PER-EMAIL              PIC X(30).
+           03  PER-TELEFONO           PIC X(15).
+           03  PER-SEXO               PIC X.
+           03  PER-NRO-SUCURSAL       PIC 9(03).
+           03  FILLER                 PIC X(12).
+
+       COPY MAP0110.
+       COPY DFHBMSCA.
+       COPY DFHAID.
+
+       LINKAGE SECTION.
+
+         01 DFHCOMMAREA PIC X(62).
+
+       PROCEDURE DIVISION.
+
+       MAIN-PROGRAM.
+
+           PERFORM 1000-I-INICIO
+              THRU 1000-I-INICIO
+           PERFORM 2000-I-PROCESO
+              THRU 2000-F-PROCESO.
+
+       1000-I-INICIO.
+           MOVE DFHCOMMAREA TO WS-COMMAREA.
+           IF EIBCALEN = 0 OR DFHAID = DFHPF3
+               MOVE LENGTH OF MAP0110O TO WS-LONG
+               MOVE LOW-VALUES TO MAP0110I
+               MOVE LOW-VALUES TO MAP0110O
+               MOVE LOW-VALUES TO WS-USER-DATA
+               PERFORM 7000-I-TIME
+                  THRU 7000-F-TIME
+
+               PERFORM 2100-I-OCULTAR-CAMPOS
+                  THRU 2100-F-OCULTAR-CAMPOS
+
+               MOVE 'T110-MAP0110' TO T110O
+               MOVE CT-MNS-01 TO MSGO
+               EXEC CICS
+                    SEND MAP (WS-MAP-00)
+                         MAPSET (WS-MAPSET-00)
+                         FROM (MAP0110O)
+                         LENGTH (WS-LONG)
+                         ERASE
+                         FREEKB
+                         RESP (WS-RESP)
+               END-EXEC
+               IF WS-RESP = DFHRESP(NORMAL)
+                 PERFORM 9999-I-FINAL
+                    THRU 9999-F-FINAL
+               ELSE
+                 MOVE 'ERROR EIBCALEN' TO WS-ERR
+                 EXEC CICS SEND TEXT FROM (WS-ERR) END-EXEC
+                 PERFORM 9000-I-PF12
+                    THRU 9000-F-PF12.
+
+       1000-F-INICIO. EXIT.
+
+       2000-I-PROCESO.
+
+           PERFORM 7000-I-TIME
+              THRU 7000-F-TIME
+           MOVE LENGTH OF MAP0110O TO WS-LONG
+           EXEC CICS
+                RECEIVE MAP    (WS-MAP-00)
+                     MAPSET (WS-MAPSET-00)
+                         INTO   (MAP0110I)
+                          RESP   (WS-RESP)
+           END-EXEC.
+           IF WS-RESP = DFHRESP(NORMAL) OR DFHAID = DFHPF3
+              PERFORM 2500-I-PULSAR-TECLA
+                 THRU 2500-F-PULSAR-TECLA
+           ELSE
+              MOVE 'ERROR 2000-PROC' TO WS-ERR
+              EXEC CICS SEND TEXT FROM(WS-ERR) END-EXEC
+              PERFORM 9000-I-PF12
+                 THRU 9000-F-PF12
+           END-IF.
+
+       2000-F-PROCESO. EXIT.
+
+       2100-I-OCULTAR-CAMPOS.
+           MOVE DFHDFHI TO FECHAA
+           MOVE DFHDFHI TO MSGA
+           MOVE DFHDFHI TO T110A
+
+      * PROPIEDAD PARA TEXTO NO EDITABLE.*
+
+           MOVE DFHPROTN TO NROCLSA.
+           MOVE DFHPROTN TO NOMAPSA.
+           MOVE DFHPROTN TO FECNASA.
+           MOVE DFHPROTN TO SEXSA.
+
+      * PROPIEDAD PARA TEXTO EDITABLE.*
+
+           MOVE DFHPROTN TO NROCLIA.
+           MOVE DFHPROTN TO NOMAPEA.
+           MOVE DFHPROTN TO FECNACA.
+           MOVE DFHPROTN TO SEXOA.
+
+       2100-F-OCULTAR-CAMPOS. EXIT.
+
+       2200-I-MOSTRAR-CAMPOS.
+
+      * VUELVE VISIBLE LOS CAMPOS NO EDITABLES.*
+
+           MOVE DFHDFHI TO NROCLSA.
+           MOVE DFHDFHI TO NOMAPSA.
+           MOVE DFHDFHI TO FECNASA.
+           MOVE DFHDFHI TO SEXSA.
+
+      * VUELVE VISIBLE LOS CAMPOS EDITABLES. *
+
+           MOVE DFHDFHI TO NROCLIA.
+           MOVE DFHDFHI TO NOMAPEA.
+           MOVE DFHDFHI TO FECNACA.
+           MOVE DFHDFHI TO SEXOA.
+
+       2200-F-MOSTRAR-CAMPOS. EXIT.
+
+       2500-I-PULSAR-TECLA.
+
+             EVALUATE EIBAID
+                WHEN DFHENTER
+                   PERFORM 3000-I-ENTER
+                      THRU 3000-F-ENTER
+                WHEN DFHPF3
+                   PERFORM 3500-I-PF3
+                      THRU 3500-F-PF3
+                WHEN DFHPF12
+                   PERFORM 9000-I-PF12
+                      THRU 9000-F-PF12
+                WHEN OTHER
+                   IF WS-USER-DATA IS EQUAL LOW-VALUES
+
+                     PERFORM 2100-I-OCULTAR-CAMPOS
+                        THRU 2100-F-OCULTAR-CAMPOS
+                    ELSE
+                   MOVE   WS-NUM-CLI   TO NROCLIO
+                   MOVE   WS-NOMAPE    TO NOMAPEO
+                   MOVE   WS-SEXO      TO SEXOO
+                   MOVE   WS-FECNAC    TO FECNACO
+                    END-IF
+                   MOVE CT-MNS-09 TO MSGO
+                   PERFORM 7000-I-TIME
+                      THRU 7000-F-TIME
+                   MOVE 'T110-MAP0110' TO T110O
+                  EXEC CICS
+                        SEND MAP (WS-MAP-00)
+                          MAPSET (WS-MAPSET-00)
+                          FROM   (MAP0110O)
+                          LENGTH (WS-LONG)
+                          ERASE
+                          FREEKB
+                          RESP (WS-RESP)
+                   END-EXEC
+                   IF WS-RESP = DFHRESP(NORMAL)
+                      PERFORM 9999-I-FINAL
+                         THRU 9999-F-FINAL
+                   ELSE
+                      MOVE 'ERROR 2500-TECLA' TO WS-ERR
+                      EXEC CICS SEND TEXT FROM (WS-ERR) END-EXEC
+                      PERFORM 9000-I-PF12
+                         THRU 9000-F-PF12
+                   END-IF
+             END-EVALUATE.
+
+       2500-F-PULSAR-TECLA. EXIT.
+
+       3000-I-ENTER.
+
+           MOVE TIPDOCI TO WS-TIP-DOC.
+           IF NOT WS-TIP-DOC-BOOLEAN
+              MOVE -1 TO TIPDOCL
+              MOVE CT-MNS-04 TO MSGO
+              PERFORM 2100-I-OCULTAR-CAMPOS
+                 THRU 2100-F-OCULTAR-CAMPOS
+           ELSE
+              IF NUMDOCI NOT NUMERIC
+                 MOVE -1 TO NUMDOCL
+                 MOVE CT-MNS-05 TO MSGO
+              PERFORM 2100-I-OCULTAR-CAMPOS
+                 THRU 2100-F-OCULTAR-CAMPOS
+              ELSE
+                 MOVE TIPDOCI TO WS-USER-TIPDOC
+                 MOVE NUMDOCI TO WS-USER-NRODOC
+                 PERFORM 3100-I-LECTURA
+                    THRU 3100-F-LECTURA
+              END-IF
+           END-IF.
+
+
+           PERFORM 7000-I-TIME
+              THRU 7000-F-TIME.
+           MOVE 'T110-MAP0110' TO T110O.
+           EXEC CICS
+              SEND MAP    (WS-MAP-00)
+              MAPSET (WS-MAPSET-00)
+              FROM   (MAP0110O)
+              LENGTH (WS-LONG)
+              ERASE
+              FREEKB
+              RESP (WS-RESP)
+           END-EXEC.
+           IF WS-RESP = DFHRESP(NORMAL)
+              PERFORM 9999-I-FINAL
+                 THRU 9999-F-FINAL
+           ELSE
+              MOVE 'ERROR 3000-ENTER' TO WS-ERR
+              EXEC CICS SEND TEXT FROM (WS-ERR) END-EXEC
+              PERFORM 9000-I-PF12
+                 THRU 9000-F-PF12
+           END-IF.
+
+       3000-F-ENTER. EXIT.
+
+       3100-I-LECTURA.
+
+           MOVE LOW-VALUES TO MAP0110O.
+           PERFORM 7000-I-TIME
+              THRU 7000-F-TIME.
+           EXEC CICS
+                READ DATASET (CT-DATASET)
+                RIDFLD  (WS-USER-DATA)
+                INTO (REG-PERSONA)
+                LENGTH (CT-DATASET-LEN)
+                EQUAL
+                RESP (WS-RESP)
+           END-EXEC.
+           EVALUATE WS-RESP
+              WHEN DFHRESP(NORMAL)
+
+                 MOVE PER-CLI-NRO        TO WS-NUM-CLI
+                 MOVE PER-NOMAPE         TO WS-NOMAPE
+                 MOVE PER-SEXO           TO WS-SEXO
+                 MOVE PER-CLI-AAAAMMDD   TO WS-FECNAC
+                 MOVE PER-TIP-DOC        TO TIPDOCO
+                 MOVE PER-NRO-DOC        TO NUMDOCO
+                 MOVE PER-CLI-NRO        TO NROCLIO
+                 MOVE PER-NOMAPE         TO NOMAPEO
+                 MOVE PER-CLI-AAAAMMDD   TO FECNACO
+                 MOVE PER-SEXO           TO SEXOO
+                 MOVE LENGTH OF MAP0110O TO WS-LONG
+                 MOVE CT-MNS-06          TO MSGO
+                 PERFORM 2200-I-MOSTRAR-CAMPOS
+                    THRU 2200-F-MOSTRAR-CAMPOS
+              WHEN DFHRESP(NOTFND)
+                 MOVE WS-USER-TIPDOC     TO TIPDOCO
+                 MOVE WS-USER-NRODOC     TO NUMDOCO
+                 MOVE LOW-VALUES         TO WS-USER-DATA
+                 MOVE LENGTH OF MAP0110O TO WS-LONG
+                 MOVE CT-MNS-03          TO MSGO
+                 PERFORM 2100-I-OCULTAR-CAMPOS
+                    THRU 2100-F-OCULTAR-CAMPOS
+              WHEN OTHER
+                 MOVE WS-USER-TIPDOC     TO TIPDOCO
+                 MOVE WS-USER-NRODOC     TO NUMDOCO
+                 MOVE LOW-VALUES         TO WS-USER-DATA
+                 MOVE LENGTH OF MAP0110O TO WS-LONG
+                 MOVE CT-MNS-08          TO MSGO
+                 PERFORM 2100-I-OCULTAR-CAMPOS
+                    THRU 2100-F-OCULTAR-CAMPOS
+           END-EVALUATE.
+           EXEC CICS
+              SEND MAP    (WS-MAP-00)
+              MAPSET      (WS-MAPSET-00)
+              FROM        (MAP0110O)
+              LENGTH      (WS-LONG)
+              RESP        (WS-RESP)
+              ERASE
+           END-EXEC.
+
+       3100-F-LECTURA. EXIT.
+
+       3500-I-PF3.
+
+           MOVE LOW-VALUES     TO MAP0110I.
+           MOVE LOW-VALUES     TO MAP0110O.
+           MOVE LOW-VALUES     TO WS-USER-DATA.
+           PERFORM 7000-I-TIME
+              THRU 7000-F-TIME.
+           MOVE 'T110-MAP0110' TO T110O.
+           MOVE CT-MNS-01      TO MSGO.
+           PERFORM 2100-I-OCULTAR-CAMPOS
+              THRU 2100-F-OCULTAR-CAMPOS
+           EXEC CICS
+               SEND MAP    (WS-MAP-00)
+               MAPSET (WS-MAPSET-00)
+               FROM   (MAP0110O)
+               LENGTH (WS-LONG)
+               ERASE
+               RESP (WS-RESP)
+               FREEKB
+           END-EXEC.
+           IF WS-RESP = DFHRESP(NORMAL)
+              PERFORM 9999-I-FINAL
+                 THRU 9999-F-FINAL
+           ELSE
+              MOVE 'ERROR 3500-PF3' TO WS-ERR
+              EXEC CICS SEND TEXT FROM (WS-ERR) END-EXEC
+              PERFORM 9000-I-PF12
+                 THRU 9000-F-PF12.
+
+       3500-F-PF3. EXIT.
+
+       7000-I-TIME.
+
+           EXEC CICS ASKTIME
+             ABSTIME (WS-ABSTIME)
+           END-EXEC.
+           EXEC CICS FORMATTIME
+             ABSTIME (WS-ABSTIME)
+             DDMMYYYY (WS-FECHA) DATESEP(WS-SEP-DATE)
+             TIME (WS-HORA) TIMESEP(WS-SEP-HOUR)
+           END-EXEC.
+           MOVE WS-FECHA TO FECHAO.
+
+       7000-F-TIME. EXIT.
+
+       9000-I-PF12.
+
+           EXEC CICS
+                SEND CONTROL ERASE
+           END-EXEC.
+           EXEC CICS
+                XCTL PROGRAM('PGMMEN10')
+           END-EXEC.
+           EXEC CICS
+                RETURN
+           END-EXEC.
+
+       9000-F-PF12. EXIT.
+
+       9999-I-FINAL.
+
+           EXEC CICS
+                RETURN
+                TRANSID  ('T110')
+                COMMAREA (WS-COMMAREA)
+           END-EXEC.
+
+       9999-F-FINAL. EXIT.

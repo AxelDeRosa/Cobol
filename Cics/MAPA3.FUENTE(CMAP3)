@@ -1,0 +1,56 @@
+         TITLE 'EXAMEN COBOL MAP0310 T310 PGMALT10 ALTTA CLI '          00010003
+MAP0310  DFHMSD TYPE=&SYSPARM,MODE=INOUT,CTRL=(FREEKB,FRSET),          *00020003
+               LANG=COBOL,TIOAPFX=YES,COLOR=BLUE                        00030000
+                                                                        00040000
+MAP0310  DFHMDI SIZE=(24,80)                                            00050003
+         DFHMDF POS=(2,27),LENGTH=13,INITIAL='ALTA CLIENTES'            00060005
+                                                                        00070000
+T310     DFHMDF POS=(02,60),LENGTH=12,INITIAL='T310-MAP0310'            00080004
+                                                                        00090003
+FECHA    DFHMDF POS=(03,60),LENGTH=10,ATTRB=PROT,INITIAL='17-03-2022'   00100004
+                                                                        00110004
+                                                                        00120000
+         DFHMDF POS=(05,06),LENGTH=35,INITIAL='CARGAR LOS DATOS Y PRESI*00130005
+               ONAR ENTER:'                                             00131004
+         DFHMDF POS=(07,09),LENGTH=20,INITIAL='TIPO DE DOCUMENTO  :'    00132000
+TIPDOC   DFHMDF POS=(07,30),LENGTH=02,PICIN='X(02)',                   *00133004
+               COLOR=YELLOW,ATTRB=(IC,UNPROT,FSET)                      00134000
+         DFHMDF POS=(07,33),LENGTH=01,ATTRB=(ASKIP,PROT)                00135001
+                                                                        00136000
+         DFHMDF POS=(09,09),LENGTH=20,INITIAL='NUMERO DE DOCUMENTO:'    00137000
+NUMDOC   DFHMDF POS=(09,30),LENGTH=11,PICIN='9(11)',                   *00138000
+               COLOR=YELLOW,ATTRB=(UNPROT,NUM,FSET)                     00139000
+         DFHMDF POS=(09,42),LENGTH=01,ATTRB=(ASKIP,PROT)                00140001
+                                                                        00140100
+NOMAPS   DFHMDF POS=(11,09),LENGTH=20,INITIAL='NOMBRE Y APELLIDO  :'    00140211
+NOMAPE   DFHMDF POS=(11,30),LENGTH=30,PICOUT='X(30)',PICIN='X(30)',    *00140306
+               HILIGHT=UNDERLINE,COLOR=YELLOW,                         *00140409
+               ATTRB=(UNPROT,FSET)                                      00140506
+         DFHMDF POS=(11,61),LENGTH=01,ATTRB=(ASKIP,PROT)                00140600
+                                                                        00140707
+         DFHMDF POS=(13,09),LENGTH=20,INITIAL='FECHA NACIMIENTO   :'    00140807
+FECDIA   DFHMDF POS=(13,30),LENGTH=02,PICIN='9(02)',COLOR=YELLOW,      *00140910
+               HILIGHT=UNDERLINE,ATTRB=(UNPROT,FSET)                    00141007
+         DFHMDF POS=(13,33),LENGTH=01,ATTRB=(ASKIP,PROT)                00142007
+         DFHMDF POS=(13,35),LENGTH=01,INITIAL='/'                       00143007
+FECMES   DFHMDF POS=(13,37),LENGTH=02,PICIN='9(02)',COLOR=YELLOW,      *00144010
+               HILIGHT=UNDERLINE,ATTRB=(UNPROT,FSET)                    00145007
+         DFHMDF POS=(13,40),LENGTH=01,ATTRB=(ASKIP,PROT)                00146007
+         DFHMDF POS=(13,42),LENGTH=01,INITIAL='/'                       00147007
+FECANIO  DFHMDF POS=(13,44),LENGTH=04,PICIN='9(04)',COLOR=YELLOW,      *00148010
+               HILIGHT=UNDERLINE,ATTRB=(UNPROT,FSET)                    00149007
+         DFHMDF POS=(13,49),LENGTH=01,ATTRB=(ASKIP,PROT)                00150007
+                                                                        00160007
+         DFHMDF POS=(15,09),LENGTH=20,INITIAL='SEXO               :'    00170007
+SEXO     DFHMDF POS=(15,30),LENGTH=01,PICIN='X',COLOR=YELLOW,          *00180010
+               HILIGHT=UNDERLINE,ATTRB=(UNPROT,FSET)                    00190007
+         DFHMDF POS=(15,32),LENGTH=01,ATTRB=(ASKIP,PROT)                00200007
+                                                                        00210007
+MSG      DFHMDF POS=(20,04),LENGTH=72,ATTRB=PROT,COLOR=RED,            *00220007
+               PICOUT='X(72)',HILIGHT=UNDERLINE                         00230007
+         DFHMDF POS=(20,77),LENGTH=01,ATTRB=(ASKIP,PROT)                00240007
+         DFHMDF POS=(23,04),LENGTH=17,INITIAL='ENTER:SELECCIONAR'       00250007
+         DFHMDF POS=(23,31),LENGTH=11,INITIAL='PF3:LIMPIAR'             00260007
+         DFHMDF POS=(23,57),LENGTH=10,INITIAL='PF12:SALIR'              00270007
+         DFHMSD TYPE=FINAL                                              00280007
+         END                                                            00290007
